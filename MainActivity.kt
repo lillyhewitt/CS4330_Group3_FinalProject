@@ -26,6 +26,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var lightSensor: Sensor? = null
     private var proximitySensor: Sensor? = null
     private var isPhoneInUse = true
+    // light level thresholds for notifications
+    private val brightLightThreshold = 1000f
+    private val lowLightThreshold = 10f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,8 +59,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         event?.let {
             when (it.sensor.type) {
                 Sensor.TYPE_LIGHT -> {
-                    if (it.values[0] < 10 && isPhoneInUse) {
+                    if (it.values[0] < lowLightThreshold && isPhoneInUse) {
                         showNotification("Low Light Detected", "Switch to night mode.")
+                    } else if (it.values[0] > brightLightThreshold && isPhoneInUse) {
+                        showNotification("Bright Light Detected", "Consider lowering your screen brightness to save battery.")
                     }
                 }
                 Sensor.TYPE_PROXIMITY -> {
@@ -85,6 +90,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             .build()
 
         notificationManager.notify(1, notification)
+        // notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
     private fun createNotificationChannel() {
