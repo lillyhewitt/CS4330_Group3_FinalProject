@@ -26,20 +26,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var lightSensor: Sensor? = null
     private var proximitySensor: Sensor? = null
     private var isPhoneInUse = true
+
     // light level thresholds for notifications
-    private val brightLightThreshold = 1000f
+    private val brightLightThreshold = 100f
     private val lowLightThreshold = 10f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // initialize sesnor manager and sensors
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
-        // Register sensors
-        lightSensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
-        proximitySensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
+        // register sensors for event listening
+        registerSensors()
 
+        // setup for UI
         setContent {
             FinalProjectTheme {
                 Scaffold(
@@ -55,27 +58,50 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         createNotificationChannel()
     }
 
+    // register light and proximity sensors
+    private fun registerSensors() {
+        lightSensor?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        proximitySensor?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+    }
+
+    // handle sensor events
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             when (it.sensor.type) {
-                Sensor.TYPE_LIGHT -> {
-                    if (it.values[0] < lowLightThreshold && isPhoneInUse) {
-                        showNotification("Low Light Detected", "Switch to night mode.")
-                    } else if (it.values[0] > brightLightThreshold && isPhoneInUse) {
-                        showNotification("Bright Light Detected", "Consider lowering your screen brightness to save battery.")
-                    }
-                }
-                Sensor.TYPE_PROXIMITY -> {
-                    isPhoneInUse = it.values[0] >= (proximitySensor?.maximumRange ?: 1f)
-                }
+                Sensor.TYPE_LIGHT -> handleLightSensor(it.values[0])
+                Sensor.TYPE_PROXIMITY -> handleProximitySensor(it.values[0])
             }
         }
+    }
+
+    // handle light sensor changes
+    private fun handleLightSensor(lightLevel: Float) {
+        Log.d("LightSensorHandler", "Handling light level: $lightLevel")
+        when {
+            lightLevel < LOW_LIGHT_THRESHOLD && isPhoneInUse -> showNotification(
+                "Low Light Detected", "Switch to night mode."
+            )
+            lightLevel > BRIGHT_LIGHT_THRESHOLD && isPhoneInUse -> showNotification(
+                "Bright Light Detected", "Consider lowering your screen brightness to save battery."
+            )
+        }
+    }
+
+    // handle proximity sensor changes (detect if the phone is in use)
+    private fun handleProximitySensor(proximityValue: Float) {
+        Log.d("ProximitySensorHandler", "Handling proximity value: $proximityValue")
+        isPhoneInUse = proximityValue >= (proximitySensor?.maximumRange ?: 1f)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not needed for this example
     }
 
+    // show notification to user
     private fun showNotification(title: String, message: String) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val intent = Intent(this, MainActivity::class.java)
@@ -93,6 +119,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         // notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
+    // create notification channel for devices
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -106,6 +133,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    // unregister sensor listeners when activity is destroyed
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
