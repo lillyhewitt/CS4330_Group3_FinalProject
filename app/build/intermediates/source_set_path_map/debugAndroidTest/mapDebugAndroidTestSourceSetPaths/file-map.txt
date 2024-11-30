@@ -1,0 +1,4 @@
+com.example.finalproject.test.app-androidTest-0 C:\Users\Lilly Hewitt\AndroidStudioProjects\FinalProject\CS4330_Group3_FinalProject\app\build\generated\res\resValues\androidTest\debug
+com.example.finalproject.test.app-mergeDebugAndroidTestResources-1 C:\Users\Lilly Hewitt\AndroidStudioProjects\FinalProject\CS4330_Group3_FinalProject\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.example.finalproject.test.app-mergeDebugAndroidTestResources-2 C:\Users\Lilly Hewitt\AndroidStudioProjects\FinalProject\CS4330_Group3_FinalProject\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.example.finalproject.test.app-debugAndroidTest-3 C:\Users\Lilly Hewitt\AndroidStudioProjects\FinalProject\CS4330_Group3_FinalProject\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
