@@ -1,17 +1,16 @@
 # CS4330_Group3_FinalProject
 
-## Project Title:
-LightSense: An Ambient Light Notification System
+## Project Title: LightSense: An Ambient Light Notification System
 
-Group Members:
+### Group Members:
 ● Dewan Tasneem - tul38268@temple.edu
 ● Lilly Elizabeth Hewitt - tuo47895@temple.edu
 
-Sensors:
+### Sensors:
 ★ Proximity Sensor (TYPE_PROXIMITY: Position Sensor)
 ★ Ambient Light Sensor (TYPE_LIGHT: Environment Sensor)
 
-Goal:
+### Goal:
 ➔ To develop an Android App that sends notifications on your phone based
 on ambient light levels in the surrounding environment. The user
 essentially receives alerts when the light conditions in the specific
@@ -28,7 +27,7 @@ received when the phone is in use through the use of the proximity sensor.
 proximity sensor will be used to ensure the phone does not receive
 any notifications during those circumstances.
 
-Scenario:
+### Scenario:
 ➢ Target People
 ○ Users with older phones with limited battery life.
 ○ Users with phones that have short battery life regardless of the
@@ -41,7 +40,7 @@ health/sight issue relating to their eyes.
 instructions/recommendations they receive in their notifications, while
 simultaneously being able to maintain better health for their eyes.
 
-Demo:
+### Demo:
 ❖ For the demo we plan on turning the lights in the room in order to
 create a dark environment. The app will then send a notification to the
 Android phone to recommend switching the phone to dark/night mode,
