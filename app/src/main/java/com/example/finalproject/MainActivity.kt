@@ -1,70 +1,87 @@
 package com.example.finalproject
 
-import android.R
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.app.NotificationCompat
+import androidx.compose.ui.unit.sp
 import com.example.finalproject.ui.theme.FinalProjectTheme
 import kotlinx.coroutines.*
 
 class MainActivity : ComponentActivity(), SensorEventListener {
+
     private lateinit var sensorManager: SensorManager
     private var lightSensor: Sensor? = null
     private var proximitySensor: Sensor? = null
     private var isPhoneInUse = true
 
-    // Light level thresholds for notifications
+    // light level thresholds for notifications
     private val brightLightThreshold = 800f
     private val lowLightThreshold = 50f
 
-    // flag to control amount of notifications
-    private var canNotify = true
+    // state variables to hold sensor values and status
+    private var lightLevel by mutableStateOf(0f)
+    private var proximityStatus by mutableStateOf("Phone not in use")
+    private var lightConditionMessage by mutableStateOf("")
+
+    // coroutine job
+    private var job: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize sensor manager and sensors
+        // Initialize sensors
+        initializeSensors()
+
+        // Setup UI
+        setContent {
+            FinalProjectTheme {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    // sensor update texts at the top
+                    Text("LightSense: Sensor Updates")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Light Level: $lightLevel")
+                    Text("Proximity Status: $proximityStatus")
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // light condition message in the middle with larger font
+                    if (lightConditionMessage.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = lightConditionMessage,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun initializeSensors() {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
-        // Register sensors for event listening
         registerSensors()
-
-        // Setup for UI
-        setContent {
-            FinalProjectTheme {
-                Column(modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                ) {
-                    // main content
-                    Text("LightSense: Notifications Powered by Sensors")
-                }
-            }
-        }
-
-        createNotificationChannel()
     }
 
-    // Register light and proximity sensors
     private fun registerSensors() {
         lightSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
@@ -74,85 +91,55 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    // Handle sensor events
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             when (it.sensor.type) {
-                Sensor.TYPE_LIGHT -> handleLightSensor(it.values[0])
-                Sensor.TYPE_PROXIMITY -> handleProximitySensor(it.values[0])
+                Sensor.TYPE_LIGHT -> {
+                    lightLevel = it.values[0]
+                    handleLightSensor(lightLevel)
+                }
+                Sensor.TYPE_PROXIMITY -> {
+                    isPhoneInUse = it.values[0] < (proximitySensor?.maximumRange ?: 10f)
+                    proximityStatus = if (isPhoneInUse) "Phone in use" else "Phone not in use"
+                }
             }
         }
     }
 
-    // Handle light sensor changes
     private fun handleLightSensor(lightLevel: Float) {
-        Log.d("SensorData", "Light level: $lightLevel")
-        if (canNotify) {
-            when {
-                lightLevel < lowLightThreshold && isPhoneInUse -> {
-                    showNotification("Low Light Detected", "Switch to night mode.")
-                    startCooldown()
-                }
-                lightLevel > brightLightThreshold && isPhoneInUse -> {
-                    showNotification("Bright Light Detected", "Consider lowering your screen brightness to save battery.")
-                    startCooldown()
-                }
+        when {
+            lightLevel < lowLightThreshold -> {
+                lightConditionMessage = "Low Light Detected\nSwitch to night mode."
+                startMessageTimeout()
+            }
+            lightLevel > brightLightThreshold -> {
+                lightConditionMessage = "Bright Light Detected\nConsider lowering your screen brightness to save battery."
+                startMessageTimeout()
+            }
+            else -> {
+                lightConditionMessage = ""
             }
         }
     }
 
-    // Handle proximity sensor changes (detect if the phone is in use)
-    private fun handleProximitySensor(proximityValue: Float) {
-        Log.d("ProximitySensorHandler", "Handling proximity value: $proximityValue")
-        isPhoneInUse = proximityValue >= (proximitySensor?.maximumRange ?: 1f)
-    }
+    private fun startMessageTimeout() {
+        // if there's already a job running, cancel it
+        job?.cancel()
 
-    private fun startCooldown() {
-        canNotify = false
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(5000) // 5-second cooldown
-            canNotify = true
+        // launch a new coroutine to clear the message after 30 seconds
+        job = CoroutineScope(Dispatchers.Main).launch {
+            delay(30000)
+            lightConditionMessage = ""
         }
     }
 
-    // Show notification to user
-    private fun showNotification(title: String, message: String) {
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val intent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
-        val notification = NotificationCompat.Builder(this, "LightSense_channel")
-            .setSmallIcon(R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification) // Use a unique ID
-    }
-
-    // Create notification channel for devices
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "LightSense_channel",
-                "LightSense Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply { description = "Channel for LightSense app notifications" }
-            val notificationManager: NotificationManager =
-                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
-    // Unregister sensor listeners when activity is destroyed
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
+        job?.cancel()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // not needed, but implemented from abstract
+        // Not used
     }
 }

@@ -11,7 +11,12 @@
 
     <!-- Declare sensor features -->
     <uses-feature android:name="android.hardware.sensor.light" android:required="true"/>
-    <uses-feature android:name="android.hardware.sensor.proximity" android:required="true"/>
+
+    <!-- In AndroidManifest.xml -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
 
     <application
         android:allowBackup="true"
