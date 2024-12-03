@@ -31,8 +31,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var isPhoneInUse = true
 
     // Light level thresholds for notifications
-    private val brightLightThreshold = 100f
-    private val lowLightThreshold = 10f
+    private val brightLightThreshold = 800f
+    private val lowLightThreshold = 50f
 
     // flag to control amount of notifications
     private var canNotify = true
