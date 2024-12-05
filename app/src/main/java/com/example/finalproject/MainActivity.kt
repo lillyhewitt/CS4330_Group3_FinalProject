@@ -25,25 +25,25 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var proximitySensor: Sensor? = null
     private var isPhoneInUse = true
 
-    // light level thresholds for notifications
+    // Light level thresholds for notifications
     private val brightLightThreshold = 800f
     private val lowLightThreshold = 50f
 
-    // state variables to hold sensor values and status
+    // State variables to hold sensor values and status
     private var lightLevel by mutableStateOf(0f)
     private var proximityStatus by mutableStateOf("Phone not in use")
     private var lightConditionMessage by mutableStateOf("")
 
-    // coroutine job
+    // Coroutine job
     private var job: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize sensors
+        // Data Extraction: Initializing sensors
         initializeSensors()
 
-        // Setup UI
+        // Preprocessing: Setting up UI
         setContent {
             FinalProjectTheme {
                 Column(
@@ -52,14 +52,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.Top
                 ) {
-                    // sensor update texts at the top
+                    // Sensor update texts at the top
                     Text("LightSense: Sensor Updates")
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("Light Level: $lightLevel")
                     Text("Proximity Status: $proximityStatus")
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // light condition message in the middle with larger font
+                    // Light condition message in the middle with larger font
                     if (lightConditionMessage.isNotEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
+        // Registering sensors for data extraction
         registerSensors()
     }
 
@@ -95,10 +96,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         event?.let {
             when (it.sensor.type) {
                 Sensor.TYPE_LIGHT -> {
+                    // Feature Extraction: Capturing and handling light sensor data
                     lightLevel = it.values[0]
                     handleLightSensor(lightLevel)
                 }
                 Sensor.TYPE_PROXIMITY -> {
+                    // Feature Extraction: Capturing and handling proximity sensor data
                     isPhoneInUse = it.values[0] < (proximitySensor?.maximumRange ?: 10f)
                     proximityStatus = if (isPhoneInUse) "Phone in use" else "Phone not in use"
                 }
@@ -107,26 +110,33 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     private fun handleLightSensor(lightLevel: Float) {
-        when {
-            lightLevel < lowLightThreshold -> {
-                lightConditionMessage = "Low Light Detected\nSwitch to night mode."
-                startMessageTimeout()
+        // Classification: Categorizing light levels
+        if (isPhoneInUse) {
+            when {
+                lightLevel < lowLightThreshold -> {
+                    lightConditionMessage = "Low Light Detected\nSwitch to night mode."
+                    startMessageTimeout()
+                }
+                lightLevel > brightLightThreshold -> {
+                    lightConditionMessage = "Bright Light Detected\nConsider lowering your screen brightness to save battery."
+                    startMessageTimeout()
+                }
+                else -> {
+                    lightConditionMessage = ""
+                }
             }
-            lightLevel > brightLightThreshold -> {
-                lightConditionMessage = "Bright Light Detected\nConsider lowering your screen brightness to save battery."
-                startMessageTimeout()
-            }
-            else -> {
-                lightConditionMessage = ""
-            }
+        } else {
+            // Clear the message if the phone is not in use
+            lightConditionMessage = ""
         }
     }
 
+
     private fun startMessageTimeout() {
-        // if there's already a job running, cancel it
+        // If there's already a job running, cancel it
         job?.cancel()
 
-        // launch a new coroutine to clear the message after 30 seconds
+        // Launch a new coroutine to clear the message after 30 seconds
         job = CoroutineScope(Dispatchers.Main).launch {
             delay(30000)
             lightConditionMessage = ""
